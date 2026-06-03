@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Financeiro Acadêmico - Mercado de Capitais</title>
+    <!-- Google Fonts: Inter (mais flat e moderno, típico de terminais) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Estilo Terminal (Esquerda) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-text">
+                    <h1>SIMULADOR ACADÊMICO</h1>
+                    <span>Mercado de Capitais</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <button class="menu-item active" data-tab="tab-analise-comparativa" id="btn-tab-comp">
+                    <span>📈 Análise Temporal</span>
+                </button>
+                <button class="menu-item" data-tab="tab-black-scholes" id="btn-tab-bs">
+                    <span>Black-Scholes</span>
+                </button>
+                <button class="menu-item" data-tab="tab-markowitz" id="btn-tab-mark">
+                    <span>Markowitz</span>
+                </button>
+                <button class="menu-item" data-tab="tab-monte-carlo" id="btn-tab-mc">
+                    <span>Monte Carlo</span>
+                </button>
+                <div class="sidebar-divider"></div>
+                <button class="menu-item" data-tab="tab-favoritos" id="btn-tab-fav">
+                    <span>⭐ Favoritos (BNDES)</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <span>Painel de Análise Acadêmica</span>
+                <span>Foco em Didática Quantitativa</span>
+            </div>
+        </aside>
+
+        <!-- Área Principal (Direita) -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-title-container">
+                    <h2>Simulador Financeiro Acadêmico - Mercado de Capitais</h2>
+                    <div class="note-container">
+                        <button class="note-btn" id="btn-nota-metodologica">
+                            <span class="info-icon">i</span> Nota Metodológica
+                        </button>
+                        <div class="note-tooltip" id="tooltip-nota">
+                            Nota: Banco Volkswagen e Banco Master são instituições de capital fechado e não possuem ações na B3. Para permitir a aplicação dos modelos de Black-Scholes e Monte Carlo, este simulador utiliza 'Ativos Sintéticos' para eles. O ativo 'CXSE3' representa as ações reais da Caixa Seguridade listadas na B3. O indexador 'IFNC' representa o Índice do Setor Financeiro oficial da B3, que engloba as principais instituições financeiras listadas.
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-selector-container">
+                    <label for="select-institution-mode">Simular:</label>
+                    <select id="select-institution-mode" class="mode-select">
+                        <option value="CAIXA" selected>Caixa Econômica</option>
+                        <option value="BNDES">BNDES</option>
+                    </select>
+                </div>
+                <div class="mode-selector-container">
+                    <label for="select-scenario-mode">Preços:</label>
+                    <select id="select-scenario-mode" class="mode-select">
+                        <option value="REAL" selected>Real (B3)</option>
+                        <option value="FICTICIO">Fictício (Didático)</option>
+                    </select>
+                </div>
+                <div class="badge-status">100% Flat Mode</div>
+            </header>
+
+            <div class="tab-container">
+                <!-- ================= ABA PRINCIPAL: ANÁLISE COMPARATIVA ================= -->
+                <section id="tab-analise-comparativa" class="tab-content active">
+                    <div class="grid-layout">
+                        <!-- Breve Explicação da Aba -->
+                        <div class="card flat-card span-12 explanation-card cyan-accent">
+                            <div class="explanation-header">
+                                <span class="explanation-icon" style="color: #00E5FF;">📊</span>
+                                <h4>Sobre a Análise Temporal</h4>
+                            </div>
+                            <div class="explanation-body">
+                                <p>Esta aba apresenta a <strong>Evolução Temporal Comparativa</strong> das instituições financeiras e índices selecionados. Para permitir uma comparação direta e justa de performance ao longo de um ano comercial (<strong>252 dias úteis</strong>), todos os preços foram normalizados para uma <strong>Base 100</strong> (ou seja, iniciam em R$ 100,00 no Dia 0). Isso permite visualizar o retorno acumulado e a volatilidade relativa de cada ativo com clareza matemática.</p>
+                            </div>
+                        </div>
+
+                        <div class="card flat-card span-12">
+                            <div class="card-header border-b">
+                                <h3>Evolução Temporal Comparativa (252 Dias Úteis)</h3>
+                                <p class="card-subtitle" id="comp-chart-subtitle">Evolução do Preço Normalizado (Base 100). Destaque para CXSE3 e IFNC.</p>
+                            </div>
+                            <div class="card-body">
+                                <!-- Toggles de Visibilidade Customizados -->
+                                <div class="comp-chart-toggles">
+                                    <label class="toggle-chip active" data-idx="0" style="--chip-color: #8B008B;" id="toggle-label-0">
+                                        <input type="checkbox" checked> CXSE3 (Caixa Seguridade)
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="1" style="--chip-color: #00E5FF;" id="toggle-label-1">
+                                        <input type="checkbox" checked> IFNC (Índice Financeiro B3)
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="2" style="--chip-color: #3b82f6;">
+                                        <input type="checkbox" checked> Banco Volkswagen S.A. (Ativo Sintético)
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="3" style="--chip-color: #f59e0b;">
+                                        <input type="checkbox" checked> BANCO MASTER (Ativo Sintético)
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="4" style="--chip-color: #820AD1;">
+                                        <input type="checkbox" checked> NUBANK
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="5" style="--chip-color: #10b981;">
+                                        <input type="checkbox" checked> BMG
+                                    </label>
+                                    <label class="toggle-chip active" data-idx="6" style="--chip-color: #ef4444;">
+                                        <input type="checkbox" checked> BRB
+                                    </label>
+                                </div>
+                                <div class="chart-wrapper chart-wrapper-lg">
+                                    <canvas id="chart-comparativo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= ABA 2: BLACK-SCHOLES ================= -->
+                <section id="tab-black-scholes" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Breve Explicação da Aba -->
+                        <div class="card flat-card span-12 explanation-card">
+                            <div class="explanation-header">
+                                <span class="explanation-icon" style="color: var(--accent);">🧮</span>
+                                <h4>Sobre o Modelo de Black-Scholes</h4>
+                            </div>
+                            <div class="explanation-body">
+                                <p>O modelo de <strong>Black-Scholes-Merton (1973)</strong> é uma das fórmulas matemáticas mais importantes da finança quantitativa, usada para calcular o preço justo de opções de estilo europeu (que só podem ser exercidas na data de vencimento). Ele estima o valor prêmio de uma <strong>CALL</strong> (direito de compra) ou <strong>PUT</strong> (direito de venda) considerando variáveis como preço atual, preço de exercício (strike), volatilidade anualizada, taxa livre de risco (Selic/DI) e tempo até o vencimento. As <strong>Gregas</strong> medem a sensibilidade do preço do derivativo em relação a mudanças nessas variáveis fundamentais.</p>
+                            </div>
+                        </div>
+
+                        <!-- Formulário de Parâmetros -->
+                        <div class="card flat-card span-4">
+                            <div class="card-header border-b">
+                                <h3>Parâmetros do Modelo</h3>
+                                <p class="card-subtitle">Selecione um ativo ou personalize as variáveis</p>
+                            </div>
+                            <div class="card-body">
+                                <form id="form-bs" onsubmit="event.preventDefault();">
+                                    <div class="form-grid">
+                                        <div class="form-group span-full">
+                                            <label for="bs-asset-select">Selecionar Ativo de Referência</label>
+                                            <select id="bs-asset-select" class="form-select">
+                                                <option value="BNDES" id="bs-opt-bndes">CXSE3 (Caixa Seguridade)</option>
+                                                <option value="BNDESPAR" id="bs-opt-bndespar">IFNC (Índice Financeiro B3)</option>
+                                                <option value="VOLKSWAGEN">Banco Volkswagen S.A. (Ativo Sintético)</option>
+                                                <option value="MASTER">BANCO MASTER (Ativo Sintético)</option>
+                                                <option value="NUBANK">NUBANK</option>
+                                                <option value="BMG">BMG</option>
+                                                <option value="BRB" selected>BRB</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="bs-s" class="term-tooltip" data-tooltip="Preço atual do ativo subjacente (S) no mercado.">Preço Atual do Ativo (S) <span class="help-q">?</span></label>
+                                            <input type="number" id="bs-s" value="10.00" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="bs-k" class="term-tooltip" data-tooltip="Preço acordado para compra/venda do ativo na data de vencimento da opção.">Preço de Exercício (K) <span class="help-q">?</span></label>
+                                            <input type="number" id="bs-k" value="10.00" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="bs-vol" class="term-tooltip" data-tooltip="Volatilidade anualizada (σ) que mede a intensidade das flutuações de preço do ativo subjacente.">Volatilidade Anual % (σ) <span class="help-q">?</span></label>
+                                            <input type="number" id="bs-vol" value="25.0" step="0.1" min="0.1" max="500" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="bs-r" class="term-tooltip" data-tooltip="Taxa de juros teórica de uma aplicação financeira sem risco de crédito (Ex: Selic ou DI).">Taxa Livre de Risco Anual % (r) <span class="help-q">?</span></label>
+                                            <input type="number" id="bs-r" value="10.75" step="0.01" min="0.0" max="100" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="bs-t" class="term-tooltip" data-tooltip="Fração do ano até a data de expiração da opção. T = 1.0 representa 1 ano completo.">Tempo de Vencimento (T em anos) <span class="help-q">?</span></label>
+                                            <input type="number" id="bs-t" value="0.5" step="0.01" min="0.001" max="50" required>
+                                            <span class="helper-text" id="bs-t-days">Aproximadamente 126 dias úteis.</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary w-full" id="btn-calcular-bs">
+                                        Calcular Opções
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Resultados Black-Scholes -->
+                        <div class="card flat-card span-8">
+                            <div class="card-header border-b">
+                                <h3>Resultados do Modelo de Black-Scholes</h3>
+                                <p class="card-subtitle">Opções europeias precificadas com base nas premissas selecionadas</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="results-layout">
+                                    <!-- Caixa Call -->
+                                    <div class="result-box flat-box">
+                                        <span class="result-label term-tooltip" data-tooltip="Opção que dá ao comprador o direito (mas não a obrigação) de comprar o ativo pelo preço Strike (K) na data de vencimento.">CALL (Opção de Compra) <span class="help-q">?</span></span>
+                                        <div class="result-value" id="val-call-price">R$ 0,00</div>
+                                        <div class="result-details">
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a taxa de variação do preço da opção em relação à mudança de preço do ativo subjacente.">Delta (Δ) <span class="help-q">?</span></span><span id="val-call-delta" class="mono">0.0000</span></div>
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a sensibilidade do preço da opção em relação à passagem do tempo (decaimento diário).">Theta (Θ/dia) <span class="help-q">?</span></span><span id="val-call-theta" class="mono">0.0000</span></div>
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a sensibilidade do preço da opção em relação a mudanças de 1% na taxa de juros livre de risco.">Rho (ρ/1%) <span class="help-q">?</span></span><span id="val-call-rho" class="mono">0.0000</span></div>
+                                        </div>
+                                    </div>
+                                    <!-- Caixa Put -->
+                                    <div class="result-box flat-box">
+                                        <span class="result-label term-tooltip" data-tooltip="Opção que dá ao comprador o direito (mas não a obrigação) de vender o ativo pelo preço Strike (K) na data de vencimento.">PUT (Opção de Venda) <span class="help-q">?</span></span>
+                                        <div class="result-value" id="val-put-price">R$ 0,00</div>
+                                        <div class="result-details">
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a sensibilidade do preço da opção de venda (put) a variações no preço do ativo subjacente. Varia de -1 a 0.">Delta (Δ) <span class="help-q">?</span></span><span id="val-put-delta" class="mono">0.0000</span></div>
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a taxa de desvalorização diária da opção de venda com a aproximação do vencimento.">Theta (Θ/dia) <span class="help-q">?</span></span><span id="val-put-theta" class="mono">0.0000</span></div>
+                                            <div class="detail-row"><span class="term-tooltip" data-tooltip="Mede a sensibilidade do preço da opção de venda a variações de 1% na taxa livre de risco.">Rho (ρ/1%) <span class="help-q">?</span></span><span id="val-put-rho" class="mono">0.0000</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Variáveis Intermediárias -->
+                                <div class="greeks-common border-t">
+                                    <div class="common-title">Variáveis Intermediárias & Gregas Gerais</div>
+                                    <div class="common-grid">
+                                        <div class="common-item">
+                                            <span class="label term-tooltip" data-tooltip="Indica o ajuste do desvio padronizado para a probabilidade acumulada sob a taxa livre de risco. Expressa a distância em desvios padrões entre o preço atual e o preço strike sob a perspectiva de retorno.">d₁ <span class="help-q">?</span></span>
+                                            <span class="val mono" id="val-d1">0.0000</span>
+                                        </div>
+                                        <div class="common-item">
+                                            <span class="label term-tooltip" data-tooltip="Calculado como d₁ - σ√T. Representa a probabilidade de a opção ser exercida no vencimento ('in-the-money') sob a medida de probabilidade neutra ao risco.">d₂ <span class="help-q">?</span></span>
+                                            <span class="val mono" id="val-d2">0.0000</span>
+                                        </div>
+                                        <div class="common-item">
+                                            <span class="label term-tooltip" data-tooltip="Mede a taxa de variação do Delta em relação à variação do preço do ativo. Indica a estabilidade do hedge.">Gamma (Γ) <span class="help-q">?</span></span>
+                                            <span class="val mono" id="val-gamma">0.0000</span>
+                                        </div>
+                                        <div class="common-item">
+                                            <span class="label term-tooltip" data-tooltip="Mede a sensibilidade do preço da opção em relação a uma variação de 1% na volatilidade implícita do ativo.">Vega <span class="help-q">?</span></span>
+                                            <span class="val mono" id="val-vega">0.0000</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= ABA 3: FRONTEIRA EFICIENTE ================= -->
+                <section id="tab-markowitz" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Breve Explicação da Aba -->
+                        <div class="card flat-card span-12 explanation-card green-accent">
+                            <div class="explanation-header">
+                                <span class="explanation-icon" style="color: #10b981;">📈</span>
+                                <h4>Sobre a Fronteira Eficiente de Markowitz</h4>
+                            </div>
+                            <div class="explanation-body">
+                                <p>A <strong>Teoria Moderna de Portfólios (1952)</strong> de Harry Markowitz demonstra matematicamente os benefícios da diversificação. Ao combinar ativos que não são perfeitamente correlacionados, podemos reduzir o risco total (volatilidade) da carteira sem sacrificar o retorno esperado. Esta aba gera <strong>1.000 portfólios aleatórios</strong> com diferentes pesos para os 7 ativos, traçando a curva da fronteira. Destacam-se a <strong>Carteira de Mínima Variância (MVR)</strong>, que oferece o menor risco possível, e a <strong>Carteira Ótima</strong>, que maximiza o <strong>Índice de Sharpe</strong> (melhor relação de retorno excedente por unidade de risco).</p>
+                            </div>
+                        </div>
+
+                        <!-- Pesos dos 7 Ativos e Correlação -->
+                        <div class="card flat-card span-4 flex-col">
+                            <div class="card-header border-b">
+                                <h3>Parâmetros dos Ativos</h3>
+                                <p class="card-subtitle">Estatísticas simuladas com base nos 252 dias úteis</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="asset-stats-table">
+                                    <table class="flat-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ativo</th>
+                                                <th>Retorno Anual</th>
+                                                <th>Volatilidade</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assets-stats-body">
+                                            <!-- Preenchido via JS para os 7 ativos -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="risk-free-section border-t mt-4">
+                                    <div class="form-group">
+                                        <label for="mark-rf" class="term-tooltip" data-tooltip="Taxa Selic/DI que serve como benchmark para calcular o excesso de retorno de portfólios com risco.">Taxa Livre de Risco Anual % ($R_f$) <span class="help-q">?</span></label>
+                                        <input type="number" id="mark-rf" value="10.75" step="0.01" min="0.0" max="100" required>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn btn-primary w-full mt-4" id="btn-simular-mark">
+                                    Simular 1.000 Carteiras
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico e Otimizações -->
+                        <div class="card flat-card span-8 flex-col">
+                            <div class="card-header border-b">
+                                <h3>Simulação da Fronteira Eficiente de Markowitz</h3>
+                                <p class="card-subtitle">Eixo X: Volatilidade (Risco), Eixo Y: Retorno Esperado. 1.000 alocações aleatórias dos 7 ativos.</p>
+                            </div>
+                            <div class="card-body flex-1 chart-body">
+                                <div class="chart-wrapper">
+                                    <canvas id="chart-markowitz"></canvas>
+                                </div>
+                                
+                                <!-- Resultados da Alocação Ótima -->
+                                <div class="optimal-portfolio-panel border-t mt-4">
+                                    <div class="opt-col">
+                                        <h4 class="term-tooltip" data-tooltip="A alocação da fronteira com maior retorno ajustado pelo risco de mercado (medido pelo Índice de Sharpe).">Carteira Ótima (Sharpe Máximo - ⭐) <span class="help-q">?</span></h4>
+                                        <div class="opt-stats">
+                                            <div class="opt-stat"><span>Retorno Esperado:</span><strong id="opt-sharpe-ret" class="mono">0.00%</strong></div>
+                                            <div class="opt-stat"><span>Volatilidade (Risco):</span><strong id="opt-sharpe-vol" class="mono">0.00%</strong></div>
+                                            <div class="opt-stat"><span class="term-tooltip" data-tooltip="Métrica que mede o prêmio de retorno que um investidor recebe por unidade de volatilidade excedente da carteira sob um ativo livre de risco. Fórmula: (Retorno - Rf) / Volatilidade.">Índice de Sharpe <span class="help-q">?</span>:</span><strong id="opt-sharpe-val" class="mono text-purple">0.00</strong></div>
+                                        </div>
+                                        <div class="opt-allocation mt-2">
+                                            <h5>Pesos da Carteira Ótima:</h5>
+                                            <div class="allocation-bars" id="alloc-sharpe-bars">
+                                                <!-- Gerado dinamicamente via JS para os 7 ativos -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="opt-col border-l">
+                                        <h4 class="term-tooltip" data-tooltip="A alocação que resulta no menor risco (volatilidade) absoluto possível combinando os ativos.">Mínima Variância (MVR - 🟢) <span class="help-q">?</span></h4>
+                                        <div class="opt-stats">
+                                            <div class="opt-stat"><span>Retorno Esperado:</span><strong id="opt-minvar-ret" class="mono">0.00%</strong></div>
+                                            <div class="opt-stat"><span>Volatilidade (Risco):</span><strong id="opt-minvar-vol" class="mono">0.00%</strong></div>
+                                            <div class="opt-stat"><span>Índice de Sharpe:</span><strong id="opt-minvar-val" class="mono text-purple">0.00</strong></div>
+                                        </div>
+                                        <div class="opt-allocation mt-2">
+                                            <h5>Pesos de Mínima Variância:</h5>
+                                            <div class="allocation-bars" id="alloc-minvar-bars">
+                                                <!-- Gerado dinamicamente via JS para os 7 ativos -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= ABA 4: SIMULAÇÃO DE MONTE CARLO ================= -->
+                <section id="tab-monte-carlo" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Breve Explicação da Aba -->
+                        <div class="card flat-card span-12 explanation-card yellow-accent">
+                            <div class="explanation-header">
+                                <span class="explanation-icon" style="color: #f59e0b;">🎲</span>
+                                <h4>Sobre a Simulação de Monte Carlo</h4>
+                            </div>
+                            <div class="explanation-body">
+                                <p>A <strong>Simulação de Monte Carlo</strong> é uma técnica computacional que utiliza amostragem aleatória repetida para simular a incerteza dos mercados financeiros. Através do modelo matemático do <strong>Movimento Browniano Geométrico (MBG)</strong>, o simulador gera <strong>1.000 trajetórias de preços futuras</strong> para o ativo escolhido. Esse processo combina um crescimento constante esperado (<strong>Drift</strong> ou tendência) com oscilações aleatórias baseadas na volatilidade (choques estocásticos). Os percentis finais (5%, 50% e 95%) auxiliam na gestão de risco ao projetar cenários de estresse, medianos e otimistas.</p>
+                            </div>
+                        </div>
+
+                        <!-- Formulário Parâmetros Monte Carlo -->
+                        <div class="card flat-card span-4">
+                            <div class="card-header border-b">
+                                <h3>Parâmetros da Projeção</h3>
+                                <p class="card-subtitle">Simule 1.000 caminhos estocásticos usando Movimento Browniano Geométrico</p>
+                            </div>
+                            <div class="card-body">
+                                <form id="form-mc" onsubmit="event.preventDefault();">
+                                    <div class="form-grid">
+                                        <div class="form-group span-full">
+                                            <label for="mc-asset-select">Selecionar Ativo para Simular</label>
+                                            <select id="mc-asset-select" class="form-select">
+                                                <option value="BNDES" id="mc-opt-bndes">CXSE3 (Caixa Seguridade)</option>
+                                                <option value="BNDESPAR" id="mc-opt-bndespar">IFNC (Índice Financeiro B3)</option>
+                                                <option value="VOLKSWAGEN">Banco Volkswagen S.A. (Ativo Sintético)</option>
+                                                <option value="MASTER">BANCO MASTER (Ativo Sintético)</option>
+                                                <option value="NUBANK">NUBANK</option>
+                                                <option value="BMG">BMG</option>
+                                                <option value="BRB" selected>BRB</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="mc-s0">Preço Inicial do Ativo ($S_0$)</label>
+                                            <input type="number" id="mc-s0" value="10.00" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="mc-drift" class="term-tooltip" data-tooltip="A taxa de crescimento esperada dos preços das ações anualizada (drift determinístico).">Drift Anual Esperado % (μ) <span class="help-q">?</span></label>
+                                            <input type="number" id="mc-drift" value="12.0" step="0.5" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="mc-vol" class="term-tooltip" data-tooltip="A volatilidade que rege a amplitude dos componentes aleatórios (choques estocásticos) no preço.">Volatilidade Anual % (σ) <span class="help-q">?</span></label>
+                                            <input type="number" id="mc-vol" value="20.0" step="0.5" min="0.1" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="mc-days">Dias Projetados (N)</label>
+                                            <input type="number" id="mc-days" value="252" step="1" min="5" max="1000" required>
+                                        </div>
+                                        <div class="form-group span-full">
+                                            <label for="mc-paths">Número de Simulações (Caminhos)</label>
+                                            <input type="number" id="mc-paths" value="1000" step="100" min="100" max="3000" readonly disabled>
+                                            <span class="helper-text">Escopo estrito fixado em 1.000 caminhos.</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary w-full mt-2" id="btn-simular-mc">
+                                        Rodar 1.000 Projeções
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico Monte Carlo e Painéis de Cenário -->
+                        <div class="card flat-card span-8 flex-col">
+                            <div class="card-header border-b">
+                                <h3>Trajetórias de Preço Projetadas</h3>
+                                <p class="card-subtitle">Exibição de 50 caminhos amostrais com destaque para os percentis acumulados de 1.000 rodadas.</p>
+                            </div>
+                            <div class="card-body flex-1 chart-body">
+                                <div class="chart-wrapper">
+                                    <canvas id="chart-monte-carlo"></canvas>
+                                </div>
+
+                                <!-- Blocos de Cenários -->
+                                <div class="mc-results-flat mt-4">
+                                    <!-- Cenário de Estresse (5%) -->
+                                    <div class="mc-flat-box border-red">
+                                        <span class="mc-flat-label color-red term-tooltip" data-tooltip="Mede a cauda inferior da distribuição (percentil 5%). Indica que apenas 5% de todas as simulações fecharam com valores piores do que este.">CENÁRIO DE ESTRESSE (5%) <span class="help-q">?</span></span>
+                                        <div class="mc-flat-value" id="mc-val-5">R$ 0,00</div>
+                                        <p class="mc-flat-desc">5% pior cenário: apenas 5% dos caminhos fecharam abaixo.</p>
+                                    </div>
+                                    <!-- Cenário Mediano (50%) -->
+                                    <div class="mc-flat-box border-white">
+                                        <span class="mc-flat-label color-white term-tooltip" data-tooltip="Representa a mediana exata da distribuição (percentil 50%), onde metade dos caminhos táticos simulados fecharam acima e a outra metade abaixo.">CENÁRIO MEDIANO (50%) <span class="help-q">?</span></span>
+                                        <div class="mc-flat-value" id="mc-val-50">R$ 0,00</div>
+                                        <p class="mc-flat-desc">Cenário estatístico mediano das trajetórias.</p>
+                                    </div>
+                                    <!-- Cenário Otimista (95%) -->
+                                    <div class="mc-flat-box border-green">
+                                        <span class="mc-flat-label color-green term-tooltip" data-tooltip="Mede a cauda superior da distribuição (percentil 95%). Apenas 5% das simulações estocásticas alcançaram um resultado melhor do que este.">CENÁRIO OTIMISTA (95%) <span class="help-q">?</span></span>
+                                        <div class="mc-flat-value" id="mc-val-95">R$ 0,00</div>
+                                        <p class="mc-flat-desc">95% melhor cenário: apenas 5% dos caminhos fecharam acima.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Estatísticas Finais de Suporte -->
+                                <div class="mc-stats-flat border-t mt-4">
+                                    <div class="mc-stat-item">
+                                        <span>Preço Médio Final:</span>
+                                        <strong id="mc-stat-mean" class="mono">R$ 0,00</strong>
+                                    </div>
+                                    <div class="mc-stat-item">
+                                        <span>Desvio Padrão:</span>
+                                        <strong id="mc-stat-std" class="mono">R$ 0,00</strong>
+                                    </div>
+                                    <div class="mc-stat-item">
+                                        <span>Probabilidade de Queda (Preço Final < S₀):</span>
+                                        <strong id="mc-stat-loss-prob" class="mono">0.0%</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= ABA 5: FAVORITOS ================= -->
+                <section id="tab-favoritos" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Breve Explicação da Aba -->
+                        <div class="card flat-card span-12 explanation-card blue-accent">
+                            <div class="explanation-header">
+                                <span class="explanation-icon" style="color: #3b82f6;">⭐</span>
+                                <h4>Sobre o Ativo Favorito (BNDES)</h4>
+                            </div>
+                            <div class="explanation-body">
+                                <p>Esta aba detalha a <strong>instituição favorita da equipe</strong>: o <strong>BNDES</strong> (Banco Nacional de Desenvolvimento Econômico e Social). Apresentamos seus dados institucionais oficiais, indicadores financeiros de balanço e sua relevância estrutural no fomento de longo prazo e no mercado de capitais brasileiro através de sua subsidiária de participações, a <strong>BNDESPAR</strong>.</p>
+                            </div>
+                        </div>
+
+                        <!-- Card Principal — Empresa do Grupo -->
+                        <div class="card flat-card span-12">
+                            <div class="card-header border-b">
+                                <div class="fav-header-row">
+                                    <div>
+                                        <h3>⭐ Empresa Favorita do Grupo: BNDES</h3>
+                                        <p class="card-subtitle">Foco analítico central da nossa apresentação</p>
+                                    </div>
+                                    <span class="fav-badge">GRUPO BNDES</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="fav-company-grid">
+                                    <!-- Identidade da Empresa -->
+                                    <div class="fav-identity">
+                                        <div class="fav-logo-box">
+                                            <span class="fav-logo-text">BNDES</span>
+                                        </div>
+                                        <div class="fav-name-block">
+                                            <h2 class="fav-company-name">BNDES (Ativo Sintético)</h2>
+                                            <p class="fav-company-full">Banco Nacional de Desenvolvimento Econômico e Social</p>
+                                            <div class="fav-tags">
+                                                <span class="fav-tag">Desenvolvimento Nacional</span>
+                                                <span class="fav-tag">Governo Federal</span>
+                                                <span class="fav-tag">Ativo de Baixa Volatilidade</span>
+                                            </div>
+                                        </div>
+                                    </div>
+ 
+                                    <!-- Dados Institucionais -->
+                                    <div class="fav-info-section">
+                                        <h4 class="section-title">Dados Institucionais</h4>
+                                        <div class="fav-info-grid">
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">Razão Social</span>
+                                                <span class="fav-info-value">BNDES — Banco Nacional de Desenvolvimento Econômico e Social</span>
+                                            </div>
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">Natureza Jurídica</span>
+                                                <span class="fav-info-value">Empresa Pública Federal (100% Capital Fechado)</span>
+                                            </div>
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">Fundação</span>
+                                                <span class="fav-info-value">20 de junho de 1952</span>
+                                            </div>
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">Sede</span>
+                                                <span class="fav-info-value">Rio de Janeiro, RJ — Brasil</span>
+                                            </div>
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">Vinculação</span>
+                                                <span class="fav-info-value">MDIC (Min. do Desenvolvimento, Indústria e Comércio)</span>
+                                            </div>
+                                            <div class="fav-info-item">
+                                                <span class="fav-info-label">CNPJ</span>
+                                                <span class="fav-info-value mono">33.657.248/0001-89</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+ 
+                        <!-- Indicadores Financeiros -->
+                        <div class="card flat-card span-6">
+                            <div class="card-header border-b">
+                                <h3>Indicadores Financeiros de Destaque</h3>
+                                <p class="card-subtitle">Métricas contábeis e de capital (Relatório 2024)</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="fav-metrics">
+                                    <div class="fav-metric-row">
+                                        <span>Ativos Totais</span>
+                                        <strong class="mono">R$ 873,4 bilhões</strong>
+                                    </div>
+                                    <div class="fav-metric-row">
+                                        <span>Patrimônio Líquido</span>
+                                        <strong class="mono">R$ 152,8 bilhões</strong>
+                                    </div>
+                                    <div class="fav-metric-row">
+                                        <span>Lucro Líquido Anual</span>
+                                        <strong class="mono text-purple">R$ 18,8 bilhões</strong>
+                                    </div>
+                                    <div class="fav-metric-row">
+                                        <span>Desembolsos Anuais</span>
+                                        <strong class="mono">R$ 116,5 bilhões</strong>
+                                    </div>
+                                    <div class="fav-metric-row">
+                                        <span>Índice de Basileia</span>
+                                        <strong class="mono">32,5% (Mínimo exigido: 10,5%)</strong>
+                                    </div>
+                                    <div class="fav-metric-row">
+                                        <span>Classificação de Risco</span>
+                                        <strong class="mono">Ba1 (Moody's) / BB (Fitch)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+ 
+                        <!-- Papel no Mercado de Capitais -->
+                        <div class="card flat-card span-6">
+                            <div class="card-header border-b">
+                                <h3>Atuação no Mercado de Capitais</h3>
+                                <p class="card-subtitle">Importância para o financiamento de longo prazo no Brasil</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="fav-context">
+                                    <div class="fav-context-block">
+                                        <h5>Financiador Estrutural</h5>
+                                        <p>Por ser uma instituição de fomento de capital fechado, o BNDES desempenha seu papel de mercado por meio de debêntures, letras financeiras e a subsidiária BNDESPAR. Seus instrumentos ditam taxas e spreads de crédito de longo prazo.</p>
+                                    </div>
+                                    <div class="fav-context-block">
+                                        <h5>Modelo Didático Aplicado</h5>
+                                        <p>Para esta apresentação acadêmica, o BNDES foi modelado sinteticamente com base no seu perfil de menor volatilidade corporativa e solidez. A Carteira BNDESPAR foi inserida como um índice de ações de sua carteira (empresas listadas de alta liquidez) permitindo aplicar de forma realista os modelos quantitativos de fronteira eficiente de Markowitz.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
