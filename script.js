@@ -110,19 +110,26 @@ function updateSimulationSettings() {
     drawComparativoChart();
     renderAssetsStatsTable();
 
-    // Sincronizar inputs se o ativo de referência alterado estiver selecionado
-    const bsSelect = document.getElementById('bs-asset-select');
-    if (bsSelect.value === 'BNDES' || bsSelect.value === 'BNDESPAR') {
-        const bsAsset = ASSET_DATABASE[bsSelect.value];
-        document.getElementById('bs-s').value = bsAsset.s0.toFixed(2);
-        document.getElementById('bs-vol').value = (bsAsset.vol * 100).toFixed(1);
-    }
-    const mcSelect = document.getElementById('mc-asset-select');
-    if (mcSelect.value === 'BNDES' || mcSelect.value === 'BNDESPAR') {
-        const mcAsset = ASSET_DATABASE[mcSelect.value];
-        document.getElementById('mc-s0').value = mcAsset.s0.toFixed(2);
-        document.getElementById('mc-drift').value = (mcAsset.drift * 100).toFixed(1);
-        document.getElementById('mc-vol').value = (mcAsset.vol * 100).toFixed(1);
+    // Sincronizar inputs para o ativo atualmente selecionado em cada painel se não estiver customizando
+    if (!isCustomizing) {
+        const bsSelect = document.getElementById('bs-asset-select');
+        if (bsSelect) {
+            const bsAsset = ASSET_DATABASE[bsSelect.value];
+            if (bsAsset) {
+                document.getElementById('bs-s').value = bsAsset.s0.toFixed(2);
+                document.getElementById('bs-k').value = bsAsset.s0.toFixed(2); // Reseta o Strike K para o preço inicial (At-the-money)
+                document.getElementById('bs-vol').value = (bsAsset.vol * 100).toFixed(1);
+            }
+        }
+        const mcSelect = document.getElementById('mc-asset-select');
+        if (mcSelect) {
+            const mcAsset = ASSET_DATABASE[mcSelect.value];
+            if (mcAsset) {
+                document.getElementById('mc-s0').value = mcAsset.s0.toFixed(2);
+                document.getElementById('mc-drift').value = (mcAsset.drift * 100).toFixed(1);
+                document.getElementById('mc-vol').value = (mcAsset.vol * 100).toFixed(1);
+            }
+        }
     }
 
     runBlackScholes();
@@ -135,6 +142,17 @@ function updateSimulationSettings() {
 let chartComparativo = null;
 let chartMarkowitz = null;
 let chartMonteCarlo = null;
+let isCustomizing = false;
+
+function handleManualInputChange() {
+    const scenarioSelect = document.getElementById('select-scenario-mode');
+    if (scenarioSelect && scenarioSelect.value !== 'FICTICIO') {
+        isCustomizing = true;
+        scenarioSelect.value = 'FICTICIO';
+        updateSimulationSettings();
+        isCustomizing = false;
+    }
+}
 
 // Armazenamento das séries históricas simuladas (252 dias) para os 7 ativos
 const historicalData = {};
@@ -415,7 +433,7 @@ function initBlackScholesControls() {
     }
 }
 
-function runBlackScholes() {
+async function runBlackScholes() {
     const S = parseFloat(document.getElementById('bs-s').value);
     const K = parseFloat(document.getElementById('bs-k').value);
     const vol = parseFloat(document.getElementById('bs-vol').value);
@@ -427,49 +445,65 @@ function runBlackScholes() {
         return;
     }
 
-    const sigma = vol / 100;
-    const rate = r / 100;
-
-    // Fórmulas de Black-Scholes para d1 e d2
-    const d1 = (Math.log(S / K) + (rate + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
-    const d2 = d1 - sigma * Math.sqrt(T);
-
-    const Nd1 = stdNormalCDF(d1);
-    const Nd2 = stdNormalCDF(d2);
-    const N_d1 = stdNormalCDF(-d1);
-    const N_d2 = stdNormalCDF(-d2);
-    const discount = Math.exp(-rate * T);
-
-    // Precificação Call & Put
-    const callPrice = S * Nd1 - K * discount * Nd2;
-    const putPrice = K * discount * N_d2 - S * N_d1;
-
-    // Gregas matemáticas
-    const pdfD1 = stdNormalPDF(d1);
-    const deltaCall = Nd1;
-    const deltaPut = Nd1 - 1;
-    const gamma = pdfD1 / (S * sigma * Math.sqrt(T));
-    const vega = (S * Math.sqrt(T) * pdfD1) / 100;
-    const thetaCall = (-(S * pdfD1 * sigma) / (2 * Math.sqrt(T)) - rate * K * discount * Nd2) / 365;
-    const thetaPut = (-(S * pdfD1 * sigma) / (2 * Math.sqrt(T)) + rate * K * discount * N_d2) / 365;
-    const rhoCall = (K * T * discount * Nd2) / 100;
-    const rhoPut = (-K * T * discount * N_d2) / 100;
+    let results;
+    try {
+        const response = await fetch('/api/black-scholes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ S, K, vol, r, T })
+        });
+        if (response.ok) {
+            results = await response.json();
+        } else {
+            throw new Error("HTTP error: " + response.status);
+        }
+    } catch (e) {
+        console.warn("Backend offline. Usando fallback local para Black-Scholes.", e);
+        
+        const sigma = vol / 100;
+        const rate = r / 100;
+        const d1 = (Math.log(S / K) + (rate + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+        const d2 = d1 - sigma * Math.sqrt(T);
+        const Nd1 = stdNormalCDF(d1);
+        const Nd2 = stdNormalCDF(d2);
+        const N_d1 = stdNormalCDF(-d1);
+        const N_d2 = stdNormalCDF(-d2);
+        const discount = Math.exp(-rate * T);
+        const callPrice = S * Nd1 - K * discount * Nd2;
+        const putPrice = K * discount * N_d2 - S * N_d1;
+        const pdfD1 = stdNormalPDF(d1);
+        
+        results = {
+            callPrice,
+            putPrice,
+            d1,
+            d2,
+            deltaCall: Nd1,
+            deltaPut: Nd1 - 1,
+            gamma: pdfD1 / (S * sigma * Math.sqrt(T)),
+            vega: (S * Math.sqrt(T) * pdfD1) / 100,
+            thetaCall: (-(S * pdfD1 * sigma) / (2 * Math.sqrt(T)) - rate * K * discount * Nd2) / 365,
+            thetaPut: (-(S * pdfD1 * sigma) / (2 * Math.sqrt(T)) + rate * K * discount * N_d2) / 365,
+            rhoCall: (K * T * discount * Nd2) / 100,
+            rhoPut: (-K * T * discount * N_d2) / 100
+        };
+    }
 
     // Atualizar HTML
-    document.getElementById('val-call-price').textContent = formatBRL(callPrice);
-    document.getElementById('val-call-delta').textContent = formatNum(deltaCall);
-    document.getElementById('val-call-theta').textContent = formatNum(thetaCall);
-    document.getElementById('val-call-rho').textContent = formatNum(rhoCall);
+    document.getElementById('val-call-price').textContent = formatBRL(results.callPrice);
+    document.getElementById('val-call-delta').textContent = formatNum(results.deltaCall);
+    document.getElementById('val-call-theta').textContent = formatNum(results.thetaCall);
+    document.getElementById('val-call-rho').textContent = formatNum(results.rhoCall);
 
-    document.getElementById('val-put-price').textContent = formatBRL(putPrice);
-    document.getElementById('val-put-delta').textContent = formatNum(deltaPut);
-    document.getElementById('val-put-theta').textContent = formatNum(thetaPut);
-    document.getElementById('val-put-rho').textContent = formatNum(rhoPut);
+    document.getElementById('val-put-price').textContent = formatBRL(results.putPrice);
+    document.getElementById('val-put-delta').textContent = formatNum(results.deltaPut);
+    document.getElementById('val-put-theta').textContent = formatNum(results.thetaPut);
+    document.getElementById('val-put-rho').textContent = formatNum(results.rhoPut);
 
-    document.getElementById('val-d1').textContent = formatNum(d1);
-    document.getElementById('val-d2').textContent = formatNum(d2);
-    document.getElementById('val-gamma').textContent = formatNum(gamma);
-    document.getElementById('val-vega').textContent = formatNum(vega);
+    document.getElementById('val-d1').textContent = formatNum(results.d1);
+    document.getElementById('val-d2').textContent = formatNum(results.d2);
+    document.getElementById('val-gamma').textContent = formatNum(results.gamma);
+    document.getElementById('val-vega').textContent = formatNum(results.vega);
 }
 
 // ================= ABA 3: FRONTEIRA EFICIENTE =================
@@ -490,71 +524,100 @@ function renderAssetsStatsTable() {
     });
 }
 
-function runMarkowitz() {
+async function runMarkowitz() {
     const rf = parseFloat(document.getElementById('mark-rf').value) / 100;
     const numPortfolios = 1000;
-    const portfolios = [];
-
-    let minSharpe = Infinity, maxSharpe = -Infinity;
-    let maxSharpePortfolio = null, minVarPortfolio = null;
-    let minVol = Infinity;
-
-    for (let p = 0; p < numPortfolios; p++) {
-        // Gerar pesos para os 7 ativos
-        const w = generateRandomWeights(7);
-
-        // Retorno Esperado
-        let pReturn = 0;
-        for (let i = 0; i < 7; i++) {
-            const key = ASSET_KEYS[i];
-            pReturn += w[i] * assetAnnualReturns[key];
+    
+    // Preparar dados para enviar
+    const annualReturnsList = ASSET_KEYS.map(key => assetAnnualReturns[key]);
+    
+    let results;
+    try {
+        const response = await fetch('/api/markowitz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rf: rf * 100,
+                annualReturns: annualReturnsList,
+                covarianceMatrix: covarianceMatrix,
+                assetKeys: ASSET_KEYS
+            })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            results = {
+                portfolios: data.portfolios,
+                maxSharpePortfolio: data.maxSharpePortfolio,
+                minVarPortfolio: data.minVarPortfolio,
+                minSharpe: data.minSharpe,
+                maxSharpe: data.maxSharpe
+            };
+        } else {
+            throw new Error("HTTP error: " + response.status);
         }
+    } catch (e) {
+        console.warn("Backend offline. Usando fallback local para Markowitz.", e);
+        
+        const portfolios = [];
+        let minSharpe = Infinity, maxSharpe = -Infinity;
+        let maxSharpePortfolio = null, minVarPortfolio = null;
+        let minVol = Infinity;
 
-        // Risco (Volatilidade) usando Matriz de Covariância
-        let pVar = 0;
-        for (let i = 0; i < 7; i++) {
-            for (let j = 0; j < 7; j++) {
-                const keyI = ASSET_KEYS[i];
-                const keyJ = ASSET_KEYS[j];
-                pVar += w[i] * w[j] * covarianceMatrix[keyI][keyJ];
+        for (let p = 0; p < numPortfolios; p++) {
+            const w = generateRandomWeights(7);
+            let pReturn = 0;
+            for (let i = 0; i < 7; i++) {
+                pReturn += w[i] * assetAnnualReturns[ASSET_KEYS[i]];
+            }
+            let pVar = 0;
+            for (let i = 0; i < 7; i++) {
+                for (let j = 0; j < 7; j++) {
+                    pVar += w[i] * w[j] * covarianceMatrix[ASSET_KEYS[i]][ASSET_KEYS[j]];
+                }
+            }
+            const pVol = Math.sqrt(pVar);
+            const pSharpe = (pReturn - rf) / pVol;
+
+            const data = {
+                weights: w,
+                expectedReturn: pReturn * 100,
+                volatility: pVol * 100,
+                sharpe: pSharpe
+            };
+            portfolios.push(data);
+
+            if (pSharpe < minSharpe) minSharpe = pSharpe;
+            if (pSharpe > maxSharpe) {
+                maxSharpe = pSharpe;
+                maxSharpePortfolio = data;
+            }
+            if (pVol < minVol) {
+                minVol = pVol;
+                minVarPortfolio = data;
             }
         }
-        const pVol = Math.sqrt(pVar);
-        const pSharpe = (pReturn - rf) / pVol;
-
-        const data = {
-            weights: w,
-            expectedReturn: pReturn * 100,
-            volatility: pVol * 100,
-            sharpe: pSharpe
+        results = {
+            portfolios,
+            maxSharpePortfolio,
+            minVarPortfolio,
+            minSharpe,
+            maxSharpe
         };
-        portfolios.push(data);
-
-        if (pSharpe < minSharpe) minSharpe = pSharpe;
-        if (pSharpe > maxSharpe) {
-            maxSharpe = pSharpe;
-            maxSharpePortfolio = data;
-        }
-        if (pVol < minVol) {
-            minVol = pVol;
-            minVarPortfolio = data;
-        }
     }
 
-    const scatterData = portfolios.map(p => ({ x: p.volatility, y: p.expectedReturn }));
+    const scatterData = results.portfolios.map(p => ({ x: p.volatility, y: p.expectedReturn }));
 
-    // Gerar gradiente de cor vibrante com base no índice de Sharpe (roxa/magenta/ciano)
-    const pointColors = portfolios.map(p => {
-        let norm = (p.sharpe - minSharpe) / (maxSharpe - minSharpe);
+    // Gerar gradiente de cor vibrante com base no índice de Sharpe
+    const pointColors = results.portfolios.map(p => {
+        let norm = (p.sharpe - results.minSharpe) / (results.maxSharpe - results.minSharpe);
         if (isNaN(norm)) norm = 0.5;
         norm = Math.max(0, Math.min(1, norm));
         
-        // HSL Interpolation: do roxo (280) ao rosa choque (330) e ciano elétrico (190) para Sharpe mais alto
         let hue;
         if (norm < 0.4) {
-            hue = 275 + (norm / 0.4) * 55; // 275 (purple) to 330 (magenta)
+            hue = 275 + (norm / 0.4) * 55;
         } else {
-            hue = 330 - ((norm - 0.4) / 0.6) * 140; // 330 (magenta) to 190 (cyan)
+            hue = 330 - ((norm - 0.4) / 0.6) * 140;
         }
         return `hsla(${hue}, 100%, 60%, ${0.5 + norm * 0.45})`;
     });
@@ -577,7 +640,7 @@ function runMarkowitz() {
                 },
                 {
                     label: 'Sharpe Máximo (⭐)',
-                    data: [{ x: maxSharpePortfolio.volatility, y: maxSharpePortfolio.expectedReturn }],
+                    data: [{ x: results.maxSharpePortfolio.volatility, y: results.maxSharpePortfolio.expectedReturn }],
                     backgroundColor: '#F8F8F8',
                     borderColor: '#00E5FF',
                     borderWidth: 3,
@@ -588,7 +651,7 @@ function runMarkowitz() {
                 },
                 {
                     label: 'Mínima Variância (🟢)',
-                    data: [{ x: minVarPortfolio.volatility, y: minVarPortfolio.expectedReturn }],
+                    data: [{ x: results.minVarPortfolio.volatility, y: results.minVarPortfolio.expectedReturn }],
                     backgroundColor: '#10b981',
                     borderColor: '#F8F8F8',
                     borderWidth: 2.5,
@@ -620,9 +683,9 @@ function runMarkowitz() {
                     callbacks: {
                         label: function(context) {
                             let p = null;
-                            if (context.datasetIndex === 0) p = portfolios[context.dataIndex];
-                            else if (context.datasetIndex === 1) p = maxSharpePortfolio;
-                            else p = minVarPortfolio;
+                            if (context.datasetIndex === 0) p = results.portfolios[context.dataIndex];
+                            else if (context.datasetIndex === 1) p = results.maxSharpePortfolio;
+                            else p = results.minVarPortfolio;
                             
                             const lines = [
                                 `Vol (Risco): ${formatPercent(p.volatility)}`,
@@ -630,7 +693,6 @@ function runMarkowitz() {
                                 `Sharpe: ${formatNum(p.sharpe, 3)}`
                             ];
                             
-                            // Adicionar pesos maiores que 1% na tooltip
                             const wStr = ASSET_KEYS.map((k, idx) => {
                                 const wVal = Math.round(p.weights[idx] * 100);
                                 return wVal > 0 ? `${k}: ${wVal}%` : null;
@@ -658,16 +720,16 @@ function runMarkowitz() {
     });
 
     // Renderizar pesos nos cards inferiores
-    updateAllocBars('alloc-sharpe-bars', maxSharpePortfolio.weights, '#8B008B');
-    updateAllocBars('alloc-minvar-bars', minVarPortfolio.weights, '#10b981');
+    updateAllocBars('alloc-sharpe-bars', results.maxSharpePortfolio.weights, '#8B008B');
+    updateAllocBars('alloc-minvar-bars', results.minVarPortfolio.weights, '#10b981');
 
-    document.getElementById('opt-sharpe-ret').textContent = formatPercent(maxSharpePortfolio.expectedReturn);
-    document.getElementById('opt-sharpe-vol').textContent = formatPercent(maxSharpePortfolio.volatility);
-    document.getElementById('opt-sharpe-val').textContent = formatNum(maxSharpePortfolio.sharpe, 3);
+    document.getElementById('opt-sharpe-ret').textContent = formatPercent(results.maxSharpePortfolio.expectedReturn);
+    document.getElementById('opt-sharpe-vol').textContent = formatPercent(results.maxSharpePortfolio.volatility);
+    document.getElementById('opt-sharpe-val').textContent = formatNum(results.maxSharpePortfolio.sharpe, 3);
 
-    document.getElementById('opt-minvar-ret').textContent = formatPercent(minVarPortfolio.expectedReturn);
-    document.getElementById('opt-minvar-vol').textContent = formatPercent(minVarPortfolio.volatility);
-    document.getElementById('opt-minvar-val').textContent = formatNum(minVarPortfolio.sharpe, 3);
+    document.getElementById('opt-minvar-ret').textContent = formatPercent(results.minVarPortfolio.expectedReturn);
+    document.getElementById('opt-minvar-vol').textContent = formatPercent(results.minVarPortfolio.volatility);
+    document.getElementById('opt-minvar-val').textContent = formatNum(results.minVarPortfolio.sharpe, 3);
 }
 
 function updateAllocBars(containerId, weights, barColor) {
@@ -712,89 +774,111 @@ function initMonteCarloControls() {
     }
 }
 
-function runMonteCarlo() {
+async function runMonteCarlo() {
     const S0 = parseFloat(document.getElementById('mc-s0').value);
     const driftAnnual = parseFloat(document.getElementById('mc-drift').value) / 100;
     const volAnnual = parseFloat(document.getElementById('mc-vol').value) / 100;
     const steps = parseInt(document.getElementById('mc-days').value);
-    const paths = 1000; // Fixo em 1.000 caminhos pelo escopo estrito
+    const paths = 1000;
 
     if (isNaN(S0) || isNaN(driftAnnual) || isNaN(volAnnual) || isNaN(steps) || S0 <= 0 || steps <= 0) {
         alert('Por favor, insira parâmetros válidos.');
         return;
     }
 
-    const dt = 1 / 252;
-    const driftTerm = (driftAnnual - 0.5 * volAnnual * volAnnual) * dt;
-    const volTerm = volAnnual * Math.sqrt(dt);
-
-    // Gerar 1000 caminhos estocásticos
-    const allPaths = new Array(paths);
-    for (let i = 0; i < paths; i++) {
-        allPaths[i] = new Float32Array(steps + 1);
-        allPaths[i][0] = S0;
-    }
-
-    for (let t = 1; t <= steps; t++) {
-        for (let i = 0; i < paths; i++) {
-            const z = randomNormal();
-            allPaths[i][t] = allPaths[i][t - 1] * Math.exp(driftTerm + volTerm * z);
+    let results;
+    try {
+        const response = await fetch('/api/monte-carlo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ S0, drift: driftAnnual * 100, vol: volAnnual * 100, steps })
+        });
+        if (response.ok) {
+            results = await response.json();
+        } else {
+            throw new Error("HTTP error: " + response.status);
         }
-    }
+    } catch (e) {
+        console.warn("Backend offline. Usando fallback local para Monte Carlo.", e);
+        
+        const dt = 1 / 252;
+        const driftTerm = (driftAnnual - 0.5 * volAnnual * volAnnual) * dt;
+        const volTerm = volAnnual * Math.sqrt(dt);
 
-    // Calcular curvas de percentis a cada dia da projeção
-    const p5 = new Float32Array(steps + 1);
-    const p50 = new Float32Array(steps + 1);
-    const p95 = new Float32Array(steps + 1);
-    p5[0] = S0; p50[0] = S0; p95[0] = S0;
-
-    for (let t = 1; t <= steps; t++) {
-        const dayPrices = new Float32Array(paths);
+        const allPaths = new Array(paths);
         for (let i = 0; i < paths; i++) {
-            dayPrices[i] = allPaths[i][t];
+            allPaths[i] = new Float32Array(steps + 1);
+            allPaths[i][0] = S0;
         }
-        dayPrices.sort();
-        p5[t] = dayPrices[Math.floor(paths * 0.05)];
-        p50[t] = dayPrices[Math.floor(paths * 0.50)];
-        p95[t] = dayPrices[Math.floor(paths * 0.95)];
-    }
 
-    // Calcular estatísticas das simulações
-    const finalPrices = new Float32Array(paths);
-    let sumFinal = 0;
-    let lossCount = 0;
-    for (let i = 0; i < paths; i++) {
-        finalPrices[i] = allPaths[i][steps];
-        sumFinal += finalPrices[i];
-        if (finalPrices[i] < S0) lossCount++;
+        for (let t = 1; t <= steps; t++) {
+            for (let i = 0; i < paths; i++) {
+                const z = randomNormal();
+                allPaths[i][t] = allPaths[i][t - 1] * Math.exp(driftTerm + volTerm * z);
+            }
+        }
+
+        const p5 = new Float32Array(steps + 1);
+        const p50 = new Float32Array(steps + 1);
+        const p95 = new Float32Array(steps + 1);
+        p5[0] = S0; p50[0] = S0; p95[0] = S0;
+
+        for (let t = 1; t <= steps; t++) {
+            const dayPrices = new Float32Array(paths);
+            for (let i = 0; i < paths; i++) {
+                dayPrices[i] = allPaths[i][t];
+            }
+            dayPrices.sort();
+            p5[t] = dayPrices[Math.floor(paths * 0.05)];
+            p50[t] = dayPrices[Math.floor(paths * 0.50)];
+            p95[t] = dayPrices[Math.floor(paths * 0.95)];
+        }
+
+        const finalPrices = new Float32Array(paths);
+        let sumFinal = 0;
+        let lossCount = 0;
+        for (let i = 0; i < paths; i++) {
+            finalPrices[i] = allPaths[i][steps];
+            sumFinal += finalPrices[i];
+            if (finalPrices[i] < S0) lossCount++;
+        }
+        const meanFinal = sumFinal / paths;
+        let sumSqrDiff = 0;
+        for (let i = 0; i < paths; i++) {
+            sumSqrDiff += Math.pow(finalPrices[i] - meanFinal, 2);
+        }
+        const stdFinal = Math.sqrt(sumSqrDiff / (paths - 1));
+        const lossProb = (lossCount / paths) * 100;
+
+        results = {
+            paths: Array.from({ length: 40 }, (_, i) => Array.from(allPaths[i])),
+            p5: Array.from(p5),
+            p50: Array.from(p50),
+            p95: Array.from(p95),
+            meanFinal,
+            stdFinal,
+            lossProb
+        };
     }
-    const meanFinal = sumFinal / paths;
-    let sumSqrDiff = 0;
-    for (let i = 0; i < paths; i++) {
-        sumSqrDiff += Math.pow(finalPrices[i] - meanFinal, 2);
-    }
-    const stdFinal = Math.sqrt(sumSqrDiff / (paths - 1));
-    const lossProb = (lossCount / paths) * 100;
 
     // Atualizar UI
-    document.getElementById('mc-val-5').textContent = formatBRL(p5[steps]);
-    document.getElementById('mc-val-50').textContent = formatBRL(p50[steps]);
-    document.getElementById('mc-val-95').textContent = formatBRL(p95[steps]);
-    document.getElementById('mc-stat-mean').textContent = formatBRL(meanFinal);
-    document.getElementById('mc-stat-std').textContent = formatBRL(stdFinal);
-    document.getElementById('mc-stat-loss-prob').textContent = formatPercent(lossProb, 1);
+    document.getElementById('mc-val-5').textContent = formatBRL(results.p5[steps]);
+    document.getElementById('mc-val-50').textContent = formatBRL(results.p50[steps]);
+    document.getElementById('mc-val-95').textContent = formatBRL(results.p95[steps]);
+    document.getElementById('mc-stat-mean').textContent = formatBRL(results.meanFinal);
+    document.getElementById('mc-stat-std').textContent = formatBRL(results.stdFinal);
+    document.getElementById('mc-stat-loss-prob').textContent = formatPercent(results.lossProb, 1);
 
-    // Amostra de 40 caminhos para exibição de fundo
-    const samplePaths = Math.min(40, paths);
     const labels = Array.from({ length: steps + 1 }, (_, i) => i);
     const datasets = [];
 
     // Linhas dos caminhos amostrais
-    for (let i = 0; i < samplePaths; i++) {
+    const samplePathsCount = results.paths.length;
+    for (let i = 0; i < samplePathsCount; i++) {
         datasets.push({
             label: `Caminho ${i + 1}`,
-            data: Array.from(allPaths[i]),
-            borderColor: 'rgba(139, 0, 139, 0.05)', // Roxo com opacidade muito baixa
+            data: results.paths[i],
+            borderColor: 'rgba(139, 0, 139, 0.05)',
             borderWidth: 1,
             pointRadius: 0,
             fill: false,
@@ -805,7 +889,7 @@ function runMonteCarlo() {
     // Linhas de percentis estruturadas
     datasets.push({
         label: 'Estresse (5%)',
-        data: Array.from(p5),
+        data: results.p5,
         borderColor: '#ef4444',
         borderWidth: 2,
         pointRadius: 0,
@@ -814,7 +898,7 @@ function runMonteCarlo() {
     });
     datasets.push({
         label: 'Mediano (50%)',
-        data: Array.from(p50),
+        data: results.p50,
         borderColor: '#F8F8F8',
         borderWidth: 2,
         borderDash: [5, 5],
@@ -824,7 +908,7 @@ function runMonteCarlo() {
     });
     datasets.push({
         label: 'Otimista (95%)',
-        data: Array.from(p95),
+        data: results.p95,
         borderColor: '#10b981',
         borderWidth: 2,
         pointRadius: 0,
@@ -947,7 +1031,16 @@ window.addEventListener('DOMContentLoaded', () => {
     if (scenarioSelect) {
         scenarioSelect.addEventListener('change', updateSimulationSettings);
     }
+
+    // 4. Registrar detectores de alteração manual de preços e parâmetros
+    const inputsToWatch = ['bs-s', 'bs-k', 'bs-vol', 'bs-r', 'bs-t', 'mc-s0', 'mc-drift', 'mc-vol', 'mc-days'];
+    inputsToWatch.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', handleManualInputChange);
+        }
+    });
     
-    // 4. Carregar dados iniciais baseado nos seletores ativos
+    // 5. Carregar dados iniciais baseado nos seletores ativos
     updateSimulationSettings();
 });
