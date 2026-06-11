@@ -40,6 +40,9 @@
                 <button class="menu-item" data-tab="tab-favoritos" id="btn-tab-fav">
                     <span>⭐ Favoritos (BNDES)</span>
                 </button>
+                <button class="menu-item" data-tab="tab-fontes-dados" id="btn-tab-fontes">
+                    <span>📋 Fontes de Dados</span>
+                </button>
             </nav>
             
             <div class="sidebar-footer">
@@ -94,6 +97,16 @@
                             </div>
                         </div>
 
+                        <!-- Banner Fonte dos Dados -->
+                        <div class="card flat-card span-12 source-banner">
+                            <div class="source-banner-inner">
+                                <span class="source-icon">📌</span>
+                                <div class="source-text">
+                                    <strong>Fonte dos Dados de Mercado:</strong> Preços extraídos da <strong>B3</strong> (b3.com.br) via Investing.com e Status Invest em <strong>11/06/2026 às 09:56 BRT</strong>. Ativos listados: CXSE3 (R$ 18,35), ROXO34 (R$ 10,08), BMGB4 (R$ 4,97), BSLI4 (R$ 3,60). Índice setorial: IFNC (~17.182 pts). Ativos Sintéticos (Volkswagen, Master, BNDES) não possuem ações na B3 e foram modelados.
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card flat-card span-12">
                             <div class="card-header border-b">
                                 <h3>Evolução Temporal Comparativa (252 Dias Úteis)</h3>
@@ -115,13 +128,13 @@
                                         <input type="checkbox" checked> BANCO MASTER (Ativo Sintético)
                                     </label>
                                     <label class="toggle-chip active" data-idx="4" style="--chip-color: #820AD1;">
-                                        <input type="checkbox" checked> NUBANK
+                                        <input type="checkbox" checked> NUBANK (ROXO34)
                                     </label>
                                     <label class="toggle-chip active" data-idx="5" style="--chip-color: #10b981;">
-                                        <input type="checkbox" checked> BMG
+                                        <input type="checkbox" checked> BMG (BMGB4)
                                     </label>
                                     <label class="toggle-chip active" data-idx="6" style="--chip-color: #ef4444;">
-                                        <input type="checkbox" checked> BRB
+                                        <input type="checkbox" checked> BRB (BSLI4)
                                     </label>
                                 </div>
                                 <div class="chart-wrapper chart-wrapper-lg">
@@ -143,6 +156,16 @@
                             </div>
                             <div class="explanation-body">
                                 <p>O modelo de <strong>Black-Scholes-Merton (1973)</strong> é uma das fórmulas matemáticas mais importantes da finança quantitativa, usada para calcular o preço justo de opções de estilo europeu (que só podem ser exercidas na data de vencimento). Ele estima o valor prêmio de uma <strong>CALL</strong> (direito de compra) ou <strong>PUT</strong> (direito de venda) considerando variáveis como preço atual, preço de exercício (strike), volatilidade anualizada, taxa livre de risco (Selic/DI) e tempo até o vencimento. As <strong>Gregas</strong> medem a sensibilidade do preço do derivativo em relação a mudanças nessas variáveis fundamentais.</p>
+                            </div>
+                        </div>
+
+                        <!-- Banner Fonte BS -->
+                        <div class="card flat-card span-12 source-banner">
+                            <div class="source-banner-inner">
+                                <span class="source-icon">📌</span>
+                                <div class="source-text">
+                                    <strong>Parâmetros de Mercado:</strong> Taxa livre de risco (Selic) = <strong>14,50% a.a.</strong> (Copom/Banco Central, Jun/2026). Volatilidades históricas de 12 meses extraídas de <strong>Mais Retorno</strong> e <strong>Status Invest</strong> em 11/06/2026. Preços spot da <strong>B3</strong>.
+                                </div>
                             </div>
                         </div>
 
@@ -181,7 +204,8 @@
                                         </div>
                                         <div class="form-group span-full">
                                             <label for="bs-r" class="term-tooltip" data-tooltip="Taxa de juros teórica de uma aplicação financeira sem risco de crédito (Ex: Selic ou DI).">Taxa Livre de Risco Anual % (r) <span class="help-q">?</span></label>
-                                            <input type="number" id="bs-r" value="10.75" step="0.01" min="0.0" max="100" required>
+                                            <input type="number" id="bs-r" value="14.50" step="0.01" min="0.0" max="100" required>
+                                            <span class="helper-text">Taxa Selic Meta: 14,50% a.a. (Copom, Jun/2026)</span>
                                         </div>
                                         <div class="form-group span-full">
                                             <label for="bs-t" class="term-tooltip" data-tooltip="Fração do ano até a data de expiração da opção. T = 1.0 representa 1 ano completo.">Tempo de Vencimento (T em anos) <span class="help-q">?</span></label>
@@ -267,6 +291,16 @@
                             </div>
                         </div>
 
+                        <!-- Banner Fonte Markowitz -->
+                        <div class="card flat-card span-12 source-banner">
+                            <div class="source-banner-inner">
+                                <span class="source-icon">📌</span>
+                                <div class="source-text">
+                                    <strong>Parâmetros de Portfólio:</strong> Retornos e volatilidades anualizados calculados sobre <strong>252 dias úteis</strong> simulados com base nos dados reais da <strong>B3</strong> (11/06/2026). Taxa Selic = <strong>14,50% a.a.</strong> (Copom). Covariância calculada a partir dos retornos logarítmicos diários.
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Pesos dos 7 Ativos e Correlação -->
                         <div class="card flat-card span-4 flex-col">
                             <div class="card-header border-b">
@@ -292,7 +326,8 @@
                                 <div class="risk-free-section border-t mt-4">
                                     <div class="form-group">
                                         <label for="mark-rf" class="term-tooltip" data-tooltip="Taxa Selic/DI que serve como benchmark para calcular o excesso de retorno de portfólios com risco.">Taxa Livre de Risco Anual % ($R_f$) <span class="help-q">?</span></label>
-                                        <input type="number" id="mark-rf" value="10.75" step="0.01" min="0.0" max="100" required>
+                                        <input type="number" id="mark-rf" value="14.50" step="0.01" min="0.0" max="100" required>
+                                        <span class="helper-text">Taxa Selic Meta: 14,50% a.a. (Copom, Jun/2026)</span>
                                     </div>
                                 </div>
 
@@ -361,6 +396,16 @@
                             </div>
                             <div class="explanation-body">
                                 <p>A <strong>Simulação de Monte Carlo</strong> é uma técnica computacional que utiliza amostragem aleatória repetida para simular a incerteza dos mercados financeiros. Através do modelo matemático do <strong>Movimento Browniano Geométrico (MBG)</strong>, o simulador gera <strong>1.000 trajetórias de preços futuras</strong> para o ativo escolhido. Esse processo combina um crescimento constante esperado (<strong>Drift</strong> ou tendência) com oscilações aleatórias baseadas na volatilidade (choques estocásticos). Os percentis finais (5%, 50% e 95%) auxiliam na gestão de risco ao projetar cenários de estresse, medianos e otimistas.</p>
+                            </div>
+                        </div>
+
+                        <!-- Banner Fonte MC -->
+                        <div class="card flat-card span-12 source-banner">
+                            <div class="source-banner-inner">
+                                <span class="source-icon">📌</span>
+                                <div class="source-text">
+                                    <strong>Projeção Estocástica:</strong> Modelo de Movimento Browniano Geométrico (MBG). Drift e volatilidade baseados nos dados reais da <strong>B3</strong> (11/06/2026). 1.000 caminhos simulados com choques aleatórios normais (Box-Muller).
+                                </div>
                             </div>
                         </div>
 
@@ -598,6 +643,108 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= ABA 6: FONTES DE DADOS ================= -->
+                <section id="tab-fontes-dados" class="tab-content">
+                    <div style="max-width: 1200px; margin: 0 auto;">
+                        <div class="footer-section">
+                            <h4>📋 Fontes dos Dados Utilizados</h4>
+                            <p class="footer-note">Todos os dados de mercado foram consultados em fontes públicas oficiais. Este trabalho tem <strong>caráter exclusivamente acadêmico</strong> e não constitui recomendação de investimento.</p>
+                            <table class="footer-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ativo</th>
+                                        <th>Ticker B3</th>
+                                        <th>Preço (R$)</th>
+                                        <th>Vol. 12m</th>
+                                        <th>Data/Hora Consulta</th>
+                                        <th>Fonte</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Caixa Seguridade</td>
+                                        <td class="mono">CXSE3</td>
+                                        <td class="mono">R$ 18,35</td>
+                                        <td class="mono">20,94%</td>
+                                        <td>11/06/2026 — 09:56 BRT</td>
+                                        <td>B3 / Investing.com / Mais Retorno</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Índice Financeiro</td>
+                                        <td class="mono">IFNC</td>
+                                        <td class="mono">~17.182 pts</td>
+                                        <td class="mono">~18%</td>
+                                        <td>11/06/2026 — 09:56 BRT</td>
+                                        <td>B3 / Status Invest</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Nubank (BDR)</td>
+                                        <td class="mono">ROXO34</td>
+                                        <td class="mono">R$ 10,08</td>
+                                        <td class="mono">~35%</td>
+                                        <td>10/06/2026 — Fechamento</td>
+                                        <td>B3 / Investing.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Banco BMG</td>
+                                        <td class="mono">BMGB4</td>
+                                        <td class="mono">R$ 4,97</td>
+                                        <td class="mono">~30%</td>
+                                        <td>11/06/2026 — 09:56 BRT</td>
+                                        <td>B3 / Investing.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Banco de Brasília</td>
+                                        <td class="mono">BSLI4</td>
+                                        <td class="mono">R$ 3,60</td>
+                                        <td class="mono">~55%</td>
+                                        <td>10/06/2026 — Fechamento</td>
+                                        <td>B3 / Investing.com</td>
+                                    </tr>
+                                    <tr class="footer-row-synthetic">
+                                        <td>Banco Volkswagen</td>
+                                        <td class="mono">—</td>
+                                        <td class="mono">Sintético</td>
+                                        <td class="mono">10%</td>
+                                        <td>—</td>
+                                        <td>Ativo Sintético (Capital Fechado)</td>
+                                    </tr>
+                                    <tr class="footer-row-synthetic">
+                                        <td>Banco Master</td>
+                                        <td class="mono">—</td>
+                                        <td class="mono">Sintético</td>
+                                        <td class="mono">22%</td>
+                                        <td>—</td>
+                                        <td>Ativo Sintético (Capital Fechado)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="footer-section">
+                            <h4>📐 Parâmetros Macroeconômicos</h4>
+                            <div class="footer-params">
+                                <div class="footer-param">
+                                    <span>Taxa Selic Meta</span>
+                                    <strong class="mono">14,50% a.a.</strong>
+                                    <span class="footer-param-source">Copom / Banco Central do Brasil — Jun/2026</span>
+                                </div>
+                                <div class="footer-param">
+                                    <span>Dias Úteis / Ano</span>
+                                    <strong class="mono">252 dias</strong>
+                                    <span class="footer-param-source">Convenção padrão do mercado financeiro brasileiro (B3)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="footer-section footer-meta">
+                            <p><strong>Carimbo de Coleta:</strong> Dados de mercado consultados na B3 (b3.com.br) via Investing.com, Status Invest, Fundamentus e Mais Retorno em <strong>11 de Junho de 2026 às 09:56 BRT</strong>.</p>
+                            <p><strong>Observação:</strong> Banco Volkswagen S.A., Banco Master e BNDES são instituições de capital fechado e não possuem ações listadas na B3. Para fins acadêmicos, foram modelados como "Ativos Sintéticos" com parâmetros baseados no perfil de risco do setor financeiro.</p>
+                            <p class="footer-disclaimer">⚠️ Este simulador foi desenvolvido exclusivamente para fins acadêmicos na disciplina de Mercado de Capitais. Não constitui recomendação de investimento. Consulte sempre um profissional credenciado (CVM) antes de tomar decisões financeiras.</p>
                         </div>
                     </div>
                 </section>

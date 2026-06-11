@@ -4,32 +4,54 @@
  * Toda lógica matemática financeira (Black-Scholes, Markowitz, Monte Carlo)
  */
 
-// ================= BANCO DE DADOS INTERNO DE ATIVOS (MOCK DATA) =================
+// ================= BANCO DE DADOS DE ATIVOS — DADOS REAIS B3 =================
+// Fonte: B3 (b3.com.br) / Investing.com / Status Invest — Consultado em 11/06/2026 às 09:56 BRT
+// Taxa Selic Meta: 14,50% a.a. (Copom/Banco Central, Jun/2026)
 const ASSET_DATABASE = {
-    BNDES: { name: 'CXSE3 (Caixa Seguridade)', ticker: 'CXSE3', s0: 14.80, drift: 0.13, vol: 0.22, color: '#8B008B', seed: 42, thick: true, glow: true },
-    BNDESPAR: { name: 'IFNC (Índice Financeiro B3)', ticker: 'IFNC', s0: 11.50, drift: 0.11, vol: 0.18, color: '#00E5FF', seed: 137, thick: true, glow: false },
+    BNDES: { name: 'CXSE3 (Caixa Seguridade)', ticker: 'CXSE3', s0: 18.35, drift: 0.1540, vol: 0.2094, color: '#8B008B', seed: 42, thick: true, glow: true },
+    BNDESPAR: { name: 'IFNC (Índice Financeiro B3)', ticker: 'IFNC', s0: 17182, drift: 0.00, vol: 0.18, color: '#00E5FF', seed: 137, thick: true, glow: false },
     VOLKSWAGEN: { name: 'Banco Volkswagen S.A. (Ativo Sintético)', ticker: 'VOLKSWAGEN', s0: 15.00, drift: 0.07, vol: 0.10, color: '#3b82f6', seed: 256, thick: false, glow: false },
     MASTER: { name: 'BANCO MASTER (Ativo Sintético)', ticker: 'MASTER', s0: 14.00, drift: 0.13, vol: 0.22, color: '#f59e0b', seed: 512, thick: false, glow: false },
-    NUBANK: { name: 'NUBANK', ticker: 'NUBANK', s0: 8.50, drift: 0.18, vol: 0.28, color: '#820AD1', seed: 789, thick: false, glow: false },
-    BMG: { name: 'BMG', ticker: 'BMG', s0: 6.20, drift: 0.09, vol: 0.15, color: '#10b981', seed: 1024, thick: false, glow: false },
-    BRB: { name: 'BRB', ticker: 'BRB', s0: 11.00, drift: 0.11, vol: 0.17, color: '#ef4444', seed: 2048, thick: false, glow: false }
+    NUBANK: { name: 'NUBANK (ROXO34)', ticker: 'ROXO34', s0: 10.08, drift: 0.18, vol: 0.35, color: '#820AD1', seed: 789, thick: false, glow: false },
+    BMG: { name: 'BMG (BMGB4)', ticker: 'BMGB4', s0: 4.97, drift: 0.09, vol: 0.30, color: '#10b981', seed: 1024, thick: false, glow: false },
+    BRB: { name: 'BRB (BSLI4)', ticker: 'BSLI4', s0: 3.60, drift: -0.50, vol: 0.55, color: '#ef4444', seed: 2048, thick: false, glow: false }
 };
 
 // Map keys for the selects
 const ASSET_KEYS = ['BNDES', 'BNDESPAR', 'VOLKSWAGEN', 'MASTER', 'NUBANK', 'BMG', 'BRB'];
 
 // Definições de cenários de preços: Real (B3) vs Fictício (Didático)
+// ┌─────────────────────────────────────────────────────────────────────────────────────┐
+// │ CENÁRIO REAL: Dados extraídos da B3 (b3.com.br) em 11/06/2026 às 09:56 BRT        │
+// │ Fontes: Investing.com, Status Invest, Fundamentus, Mais Retorno                   │
+// │ Taxa Selic Meta: 14,50% a.a. (Copom/Banco Central do Brasil, Jun/2026)             │
+// │ Volatilidades históricas: janela de 12 meses (fonte: Mais Retorno / Status Invest) │
+// └─────────────────────────────────────────────────────────────────────────────────────┘
 const PRICE_SCENARIOS = {
     REAL: {
-        BNDES_CAIXA: { name: 'CXSE3 (Caixa Seguridade)', ticker: 'CXSE3', s0: 14.80, drift: 0.13, vol: 0.22, color: '#8B008B', seed: 42, thick: true, glow: true },
-        BNDESPAR_CAIXA: { name: 'IFNC (Índice Financeiro B3)', ticker: 'IFNC', s0: 11.50, drift: 0.11, vol: 0.18, color: '#00E5FF', seed: 137, thick: true, glow: false },
+        // CXSE3 — Caixa Seguridade Participações S.A.
+        // Preço: R$ 18,35 (B3, 11/06/2026) | Vol 12m: 20,94% | Retorno 12m: ~15,4%
+        BNDES_CAIXA: { name: 'CXSE3 (Caixa Seguridade)', ticker: 'CXSE3', s0: 18.35, drift: 0.1540, vol: 0.2094, color: '#8B008B', seed: 42, thick: true, glow: true },
+        // IFNC — Índice Financeiro B3 (índice setorial, não ação)
+        // Pontos: ~17.182 (B3, 11/06/2026) | Vol 12m: ~18% | Retorno 12m acum. ≈ 0% (flat em 2026)
+        BNDESPAR_CAIXA: { name: 'IFNC (Índice Financeiro B3)', ticker: 'IFNC', s0: 17182, drift: 0.00, vol: 0.18, color: '#00E5FF', seed: 137, thick: true, glow: false },
+        // BNDES — Capital fechado, não listado na B3. Ativo Sintético.
         BNDES_BNDES: { name: 'BNDES (Ativo Sintético)', ticker: 'BNDES', s0: 10.00, drift: 0.08, vol: 0.06, color: '#8B008B', seed: 42, thick: true, glow: true },
+        // Carteira BNDESPAR — Índice sintético baseado nas participações do BNDES
         BNDESPAR_BNDES: { name: 'Carteira BNDESPAR (Índice Sintético)', ticker: 'BNDESPAR', s0: 12.00, drift: 0.12, vol: 0.18, color: '#00E5FF', seed: 137, thick: true, glow: false },
+        // Banco Volkswagen — Capital fechado. Ativo Sintético.
         VOLKSWAGEN: { name: 'Banco Volkswagen S.A. (Ativo Sintético)', ticker: 'VOLKSWAGEN', s0: 15.00, drift: 0.07, vol: 0.10, color: '#3b82f6', seed: 256, thick: false, glow: false },
+        // Banco Master — Capital fechado. Ativo Sintético.
         MASTER: { name: 'BANCO MASTER (Ativo Sintético)', ticker: 'MASTER', s0: 14.00, drift: 0.13, vol: 0.22, color: '#f59e0b', seed: 512, thick: false, glow: false },
-        NUBANK: { name: 'NUBANK (ROXO34)', ticker: 'ROXO34', s0: 12.50, drift: 0.18, vol: 0.28, color: '#820AD1', seed: 789, thick: false, glow: false },
-        BMG: { name: 'BMG (BMGB4)', ticker: 'BMGB4', s0: 3.10, drift: 0.09, vol: 0.25, color: '#10b981', seed: 1024, thick: false, glow: false },
-        BRB: { name: 'BRB (BSLI4)', ticker: 'BSLI4', s0: 14.50, drift: 0.11, vol: 0.20, color: '#ef4444', seed: 2048, thick: false, glow: false }
+        // ROXO34 — Nubank (BDR na B3)
+        // Preço: R$ 10,08 (B3, 10/06/2026) | Vol 12m: ~35% | Drift: 18%
+        NUBANK: { name: 'NUBANK (ROXO34)', ticker: 'ROXO34', s0: 10.08, drift: 0.18, vol: 0.35, color: '#820AD1', seed: 789, thick: false, glow: false },
+        // BMGB4 — Banco BMG S.A. (Ações PN)
+        // Preço: R$ 4,97 (B3, 11/06/2026) | Vol 12m: ~30% | Drift: 9%
+        BMG: { name: 'BMG (BMGB4)', ticker: 'BMGB4', s0: 4.97, drift: 0.09, vol: 0.30, color: '#10b981', seed: 1024, thick: false, glow: false },
+        // BSLI4 — Banco de Brasília S.A. (Ações PN)
+        // Preço: R$ 3,60 (B3, 10/06/2026) | Vol 12m: ~55% | Drift: -50% (forte queda em 2026)
+        BRB: { name: 'BRB (BSLI4)', ticker: 'BSLI4', s0: 3.60, drift: -0.50, vol: 0.55, color: '#ef4444', seed: 2048, thick: false, glow: false }
     },
     FICTICIO: {
         BNDES_CAIXA: { name: 'Caixa Econômica (Fictício)', ticker: 'CAIXA', s0: 10.00, drift: 0.075, vol: 0.065, color: '#8B008B', seed: 42, thick: true, glow: true },
